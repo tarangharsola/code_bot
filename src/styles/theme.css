@@ -1,0 +1,41 @@
+:root {
+  --bg: #f8f9fa;
+  --bg-elevated: #fff;
+  --text: #222;
+  --text-muted: #6c757d;
+  --accent: #2a7cff;
+  --border: #e5e7eb;
+  --focus: #2a7cff33;
+}
+
+[data-theme="dark"] {
+  --bg: #181a1b;
+  --bg-elevated: #232526;
+  --text: #f3f4f6;
+  --text-muted: #a0aec0;
+  --accent: #2a7cff;
+  --border: #232526;
+  --focus: #2a7cff33;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+a:focus, a:hover {
+  text-decoration: underline;
+  outline: none;
+  color: #174ea6;
+  background: var(--focus);
+  border-radius: 3px;
+}
+button:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

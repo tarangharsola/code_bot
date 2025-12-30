@@ -1,0 +1,38 @@
+name: Autonomous Project Bot
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # Once per day at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  autobot:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Autonomous Bot
+        run: python bot/main.py
+
+      - name: Run Complexity & Performance Checks
+        run: python bot/complexity.py && python bot/perfguard.py
+
+      - name: Enforce Commit Policy
+        run: python bot/gitops.py check_commits
+
+      - name: Push Commits
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}

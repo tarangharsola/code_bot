@@ -1,0 +1,10 @@
+user_name: "Tarang Harsola"
+github_username: "tarangharsola"
+target_repo: "tarangharsola/awesome-project"
+github_token_secret: "GITHUB_TOKEN"
+project_prompt: "Build a modern, accessible, and efficient SaaS dashboard for small businesses."
+project_duration: 60
+min_commits_per_day: 3
+constraints:
+  - "No purple or neon colors"
+  - "Must support mobile and desktop"

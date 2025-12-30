@@ -1,0 +1,57 @@
+name: Autonomous Website Builder
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # Runs once per day at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  build-autonomous-website:
+    runs-on: ubuntu-latest
+    env:
+      BOT_STATE_PATH: bot/state.json
+      WEBSITE_ROOT: ${{ github.workspace }}
+      DAYS_TOTAL: 60
+      COMMITS_PER_DAY: 3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Run Autonomous Website Bot
+        run: python bot/main.py
+
+      - name: Run Complexity & Performance Checks
+        run: python bot/complexity.py && python bot/perfguard.py
+
+      - name: Build Website
+        run: npm run build
+
+      - name: Check Commit Count
+        run: |
+          COUNT=$(git log --since=midnight --oneline | wc -l)
+          if [ "$COUNT" -ne 3 ]; then
+            echo "Exactly 3 commits required, found $COUNT"
+            exit 1
+          fi
+
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
