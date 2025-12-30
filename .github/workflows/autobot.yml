@@ -2,7 +2,7 @@ name: Autonomous Project Bot
 
 on:
   schedule:
-    - cron: '30 21 * * *' # Once per day at 03:00 IST (21:30 UTC)
+    - cron: '30 6 * * *' # Once per day at 12:00 PM IST (06:30 UTC)
   workflow_dispatch:
 
 jobs:
