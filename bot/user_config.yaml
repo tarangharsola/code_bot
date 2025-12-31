@@ -2,9 +2,46 @@ user_name: "Tarang Harsola"
 github_username: "tarangharsola"
 target_repo: "tarangharsola/awesome-project"
 github_token_secret: "GITHUB_TOKEN"
-project_prompt: "Build a collaborative code editor web application with real-time multi-user editing capabilities. CORE REQUIREMENTS: 1. Code editor with syntax highlighting for JavaScript, Python, and HTML 2. Real-time synchronization - when one user types, all connected users see changes instantly 3. Live cursor tracking - show each user's cursor position with their name and a unique color 4. Active users panel - display list of currently connected users with their colors 5. Document sharing - generate unique shareable URLs for each coding session 6. User identification - prompt for username on entry, assign random color to each user FUNCTIONAL REQUIREMENTS: - Handle concurrent edits from multiple users without conflicts - Maintain consistency of document state across all connected clients - Show remote user cursors as visual indicators overlaid on the editor - Display cursor positions with user names and colors - Update all connected clients immediately when any user makes changes - Create isolated rooms/sessions where each document URL represents a unique collaborative space - Track and broadcast user presence (join/leave events) - Provide language selection for appropriate syntax highlighting UI REQUIREMENTS: - Clean, professional interface with dark mode - Responsive design optimized for desktop - Clear visual feedback for connection status (connected/disconnected) - Smooth animations for remote cursor movements - Active users sidebar or panel showing all connected participants - Language selector for syntax highlighting TECHNICAL EXPECTATIONS: - Use established libraries for operational transformation or CRDTs to handle conflict resolution - Implement WebSocket or similar real-time communication protocol - Choose an appropriate code editor component that supports extensions and overlays - Ensure proper error handling and reconnection logic - No placeholder code or TODO comments OUTPUT: Provide complete, production-ready code that can be deployed and tested immediately. Choose the most appropriate technologies for achieving real-time collaboration with minimal latency and maximum reliability. this my project prompt "
+project_prompt: |
+  Build a collaborative code editor web application with real-time multi-user editing capabilities.
+
+  CORE REQUIREMENTS:
+  1. Code editor with syntax highlighting for JavaScript, Python, and HTML
+  2. Real-time synchronization - when one user types, all connected users see changes instantly
+  3. Live cursor tracking - show each user's cursor position with their name and a unique color
+  4. Active users panel - display list of currently connected users with their colors
+  5. Document sharing - generate unique shareable URLs for each coding session
+  6. User identification - prompt for username on entry, assign random color to each user
+
+  FUNCTIONAL REQUIREMENTS:
+  - Handle concurrent edits from multiple users without conflicts
+  - Maintain consistency of document state across all connected clients
+  - Show remote user cursors as visual indicators overlaid on the editor
+  - Display cursor positions with user names and colors
+  - Update all connected clients immediately when any user makes changes
+  - Create isolated rooms/sessions where each document URL represents a unique collaborative space
+  - Track and broadcast user presence (join/leave events)
+  - Provide language selection for appropriate syntax highlighting
+
+  UI REQUIREMENTS:
+  - Clean, professional interface with dark mode
+  - Responsive design optimized for desktop
+  - Clear visual feedback for connection status (connected/disconnected)
+  - Smooth animations for remote cursor movements
+  - Active users sidebar or panel showing all connected participants
+  - Language selector for syntax highlighting
+
+  TECHNICAL EXPECTATIONS:
+  - Use established libraries for operational transformation or CRDTs to handle conflict resolution
+  - Implement WebSocket or similar real-time communication protocol
+  - Choose an appropriate code editor component that supports extensions and overlays
+  - Ensure proper error handling and reconnection logic
+  - No placeholder code or TODO comments
+
+  OUTPUT:
+  Provide complete, production-ready code that can be deployed and tested immediately. Choose the most appropriate technologies for achieving real-time collaboration with minimal latency and maximum reliability.
 project_duration: 60
-min_commits_per_day: 3
+min_commits_per_day: 6
 constraints:
   - "No purple or neon colors"
   - "Must support mobile and desktop"
