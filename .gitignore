@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+# Virtual env
+.venv/
+
+# Node
+node_modules/
+/dist
+
+# Editor
+.vscode/
+*.swp
+
+# Bot
+bot/state.json
+bot/perf_baseline.json
+bot/perf_baseline.json
+
+# Target repo clone
+target_repo/
+
+# Build outputs
+public/build/
