@@ -30,9 +30,3 @@ jobs:
 
       - name: Enforce Commit Policy
         run: python bot/gitops.py check_commits
-
-      - name: Push Commits
-        uses: ad-m/github-push-action@v0.8.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}

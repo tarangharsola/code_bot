@@ -6,43 +6,51 @@ from bot.config import load_config
 
 
 def clone_target_repo():
-  config = load_config()
-  repo_url = f"https://x-access-token:{os.environ.get('GITHUB_TOKEN','')}@github.com/{config['target_repo']}.git"
-  if not os.path.exists("target_repo"):
-    subprocess.run(["git", "clone", repo_url, "target_repo"], check=True)
+    config = load_config()
+    token_name = config.get('github_token_secret', 'GITHUB_TOKEN')
+    token = os.environ.get(token_name)
+    if not token:
+        raise RuntimeError(f"Missing {token_name} in environment. Please add it as a repository secret and set github_token_secret in config.")
+    repo_url = f"https://x-access-token:{token}@github.com/{config['target_repo']}.git"
+    if not os.path.exists("target_repo"):
+        subprocess.run(["git", "clone", repo_url, "target_repo"], check=True)
+    # Ensure commits are attributed to a bot identity inside the target repo
+    subprocess.run(["git", "config", "user.name", "Autonomous Bot"], check=True, cwd="target_repo")
+    subprocess.run(["git", "config", "user.email", "autobot@users.noreply.github.com"], check=True, cwd="target_repo")
+
 
 def execute_plan(plan, state):
-  clone_target_repo()
-  cwd = os.getcwd()
-  os.chdir("target_repo")
-  try:
-    for step in plan:
-      action = step['action']
-      # Each action is mapped to a function
-      if action == "add_html_structure":
-        add_html_structure()
-      elif action == "add_base_css":
-        add_base_css()
-      elif action == "add_favicon_robots":
-        add_favicon_robots()
-      elif action == "add_layout_system":
-        add_layout_system()
-      elif action == "add_typography":
-        add_typography()
-      elif action == "add_header":
-        add_header()
-      elif action == "refine_section":
-        refine_section()
-      elif action == "polish_micro":
-        polish_micro()
-      elif action == "accessibility":
-        accessibility()
-      else:
-        raise Exception(f"Unknown action: {action}")
-      git_commit(step['description'])
-    subprocess.run(["git", "push"], check=True)
-  finally:
-    os.chdir(cwd)
+    clone_target_repo()
+    cwd = os.getcwd()
+    os.chdir("target_repo")
+    try:
+        for step in plan:
+            action = step['action']
+            # Each action is mapped to a function
+            if action == "add_html_structure":
+                add_html_structure()
+            elif action == "add_base_css":
+                add_base_css()
+            elif action == "add_favicon_robots":
+                add_favicon_robots()
+            elif action == "add_layout_system":
+                add_layout_system()
+            elif action == "add_typography":
+                add_typography()
+            elif action == "add_header":
+                add_header()
+            elif action == "refine_section":
+                refine_section()
+            elif action == "polish_micro":
+                polish_micro()
+            elif action == "accessibility":
+                accessibility()
+            else:
+                raise Exception(f"Unknown action: {action}")
+            git_commit(step['description'])
+        subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
+    finally:
+        os.chdir(cwd)
 
 def add_html_structure():
     # Write a minimal, semantic index.html
