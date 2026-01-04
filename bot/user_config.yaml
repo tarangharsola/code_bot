@@ -41,7 +41,7 @@ project_prompt: |
   OUTPUT:
   Provide complete, production-ready code that can be deployed and tested immediately. Choose the most appropriate technologies for achieving real-time collaboration with minimal latency and maximum reliability.
 project_duration: 60
-min_commits_per_day: 3
+min_commits_per_day: 6
 constraints:
   - "No purple or neon colors"
   - "Must support mobile and desktop"
