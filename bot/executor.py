@@ -15,6 +15,15 @@ def clone_target_repo():
     # Safe debug (does not print the token)
     print(f"Auth env '{token_name}' detected (len={len(token)}).")
 
+    # Guardrail: GitHub PATs are typically much longer than 29 chars.
+    # Classic tokens often start with 'ghp_' and fine-grained tokens start with 'github_pat_'.
+    if len(token) < 35 or not (token.startswith("ghp_") or token.startswith("github_pat_")):
+        raise RuntimeError(
+            f"{token_name} does not look like a valid GitHub PAT. "
+            f"Create a new token and paste the full value into the '{token_name}' secret. "
+            f"Expected a token starting with 'ghp_' or 'github_pat_' (len >= 35)."
+        )
+
     gh_user = (config.get("github_username") or "").strip() or "x-access-token"
     gh_user_enc = quote(gh_user, safe="")
     token_enc = quote(token, safe="")
