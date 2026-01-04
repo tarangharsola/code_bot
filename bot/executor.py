@@ -110,7 +110,7 @@ def scaffold_frontend():
     \"type\": \"module\",
     \"scripts\": {
         \"dev\": \"vite\",
-        \"build\": \"tsc -b && vite build\",
+        \"build\": \"tsc -p tsconfig.json && vite build\",
         \"preview\": \"vite preview\"
     },
     \"dependencies\": {
@@ -481,7 +481,7 @@ export default function Editor({
     \"type\": \"module\",
     \"scripts\": {
         \"dev\": \"vite\",
-        \"build\": \"tsc -b && vite build\",
+        \"build\": \"tsc -p tsconfig.json && vite build\",
         \"preview\": \"vite preview\"
     },
     \"dependencies\": {
@@ -862,7 +862,7 @@ select {
     \"type\": \"module\",
     \"scripts\": {
         \"dev\": \"vite\",
-        \"build\": \"tsc -b && vite build\",
+        \"build\": \"tsc -p tsconfig.json && vite build\",
         \"preview\": \"vite preview\"
     },
     \"dependencies\": {
