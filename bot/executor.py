@@ -1,4 +1,3 @@
-
 import subprocess
 import os
 from urllib.parse import quote
@@ -41,7 +40,7 @@ def clone_target_repo():
     subprocess.run(["git", "config", "user.email", "autobot@users.noreply.github.com"], check=True, cwd="target_repo")
 
 
-def execute_plan(plan, state):
+def execute_plan(plan):
     clone_target_repo()
     cwd = os.getcwd()
     os.chdir("target_repo")
@@ -59,117 +58,93 @@ def execute_plan(plan, state):
         os.chdir(cwd)
 
 def _write_file(path: str, content: str) -> None:
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with open(path, "w", encoding="utf-8", newline="\n") as f:
-                f.write(content)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(content)
 
 
-    def _delete_file(path: str) -> None:
-        if os.path.isdir(path):
-            return
-        if os.path.exists(path):
-            os.remove(path)
+def _delete_file(path: str) -> None:
+    if os.path.isdir(path):
+        return
+    if os.path.exists(path):
+        os.remove(path)
 
 
-    def _repo_snapshot(max_files: int = 200) -> str:
-        """Lightweight repo context for the model (paths only)."""
-        try:
-            out = subprocess.run(
-                ["git", "ls-files"],
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout
-            files = [l.strip() for l in out.splitlines() if l.strip()]
-        except Exception:
-            files = []
+def _repo_snapshot(max_files: int = 200) -> str:
+    """Lightweight repo context for the model (paths only)."""
+    try:
+        out = subprocess.run(
+            ["git", "ls-files"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        files = [l.strip() for l in out.splitlines() if l.strip()]
+    except Exception:
+        files = []
 
-        deny_prefixes = (
-            "node_modules/",
-            ".git/",
-            "dist/",
-            "build/",
-            ".venv/",
-        )
-        filtered = [f for f in files if not f.startswith(deny_prefixes)]
-        if len(filtered) > max_files:
-            filtered = filtered[:max_files]
-        return "\n".join(filtered)
-
-
-    def ai_step(step: dict) -> None:
-        """Use Gemini to generate a small changeset and apply it."""
-        config = load_config()
-        api_key = get_api_key_from_env(config.get("gemini_api_key_env", "GEMINI_API_KEY"))
-        model = (config.get("gemini_model") or "gemini-1.5-flash").strip()
-
-        project_prompt = config.get("project_prompt", "")
-        task = (step.get("task") or step.get("description") or "").strip()
-        if not task:
-            raise RuntimeError("AI step missing task/description")
-
-        snapshot = _repo_snapshot()
-
-        prompt = f"""You are a senior full-stack engineer.
-
-    Repository goal:
-    {project_prompt}
-
-    Current repository file list (may be truncated):
-    {snapshot}
-
-    Task for this commit:
-    {task}
-
-    Return ONLY a single JSON object with this schema:
-    {{
-      \"summary\": string,
-      \"writes\": [{{\"path\": string, \"content\": string}}],
-      \"deletes\": [string]
-    }}
-
-    Rules:
-    - Output must be production-quality and efficient (avoid unnecessary abstractions; prefer simple, fast solutions).
-    - Prefer minimal dependencies. Do not introduce heavy frameworks unless clearly necessary.
-    - Only write source/config/docs files. Do NOT add node_modules, lockfiles, or large vendor bundles.
-    - Keep changes minimal and commit-scoped (small PR-sized changes).
-    - Paths must be relative and must not contain '..'.
-    - Prefer updating existing files over creating many new ones.
-    - Avoid placeholder code and TODOs.
-    """
-
-        try:
-            obj = generate_json(api_key=api_key, model=model, prompt=prompt)
-            changeset = parse_changeset(obj)
-            validate_size(changeset)
-        except (GeminiError, ProtocolError) as e:
-            raise RuntimeError(f"AI generation failed: {e}") from e
-
-        # Apply changes
-        for p in changeset.deletes:
-            _delete_file(p)
-        for w in changeset.writes:
-            _write_file(w.path, w.content)
-
-        # Keep a visible build trail without breaking the app.
-        _append_if_missing(
-                "README.md",
-                "## Connection status",
-                "\n## Connection status\n\nThe app reconnects automatically when the network is interrupted.\n",
-        )
+    deny_prefixes = (
+        "node_modules/",
+        ".git/",
+        "dist/",
+        "build/",
+        ".venv/",
+    )
+    filtered = [f for f in files if not f.startswith(deny_prefixes)]
+    if len(filtered) > max_files:
+        filtered = filtered[:max_files]
+    return "\n".join(filtered)
 
 
-def improve_presence_panel():
-        _append_if_missing(
-                "src/styles/app.css",
-                "/* presence v2 */",
-                "\n/* presence v2 */\n.user { padding: 4px 6px; border-radius: 10px; }\n",
-        )
+def ai_step(step: dict) -> None:
+    """Use Gemini to generate a small changeset and apply it."""
+    config = load_config()
+    api_key = get_api_key_from_env(config.get("gemini_api_key_env", "GEMINI_API_KEY"))
+    model = (config.get("gemini_model") or "gemini-1.5-flash").strip()
 
+    project_prompt = config.get("project_prompt", "")
+    task = (step.get("task") or step.get("description") or "").strip()
+    if not task:
+        raise RuntimeError("AI step missing task/description")
 
-def improve_editor_ergonomics():
-        _append_if_missing(
-                "src/styles/app.css",
-                "/* editor v2 */",
-                "\n/* editor v2 */\n.editorShell { box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset; }\n",
-        )
+    snapshot = _repo_snapshot()
+
+    prompt = f"""You are a senior full-stack engineer.
+
+Repository goal:
+{project_prompt}
+
+Current repository file list (may be truncated):
+{snapshot}
+
+Task for this commit:
+{task}
+
+Return ONLY a single JSON object with this schema:
+{{
+  \"summary\": string,
+  \"writes\": [{{\"path\": string, \"content\": string}}],
+  \"deletes\": [string]
+}}
+
+Rules:
+- Output must be production-quality and efficient (avoid unnecessary abstractions; prefer simple, fast solutions).
+- Prefer minimal dependencies. Do not introduce heavy frameworks unless clearly necessary.
+- Only write source/config/docs files. Do NOT add node_modules, lockfiles, or large vendor bundles.
+- Keep changes minimal and commit-scoped (small PR-sized changes).
+- Paths must be relative and must not contain '..'.
+- Prefer updating existing files over creating many new ones.
+- Avoid placeholder code and TODOs.
+"""
+
+    try:
+        obj = generate_json(api_key=api_key, model=model, prompt=prompt)
+        changeset = parse_changeset(obj)
+        validate_size(changeset)
+    except (GeminiError, ProtocolError) as e:
+        raise RuntimeError(f"AI generation failed: {e}") from e
+
+    for p in changeset.deletes:
+        _delete_file(p)
+    for w in changeset.writes:
+        _write_file(w.path, w.content)

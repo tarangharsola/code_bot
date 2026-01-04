@@ -42,7 +42,7 @@ def main():
 
     state = {"current_day": current_day, "total_days": total_days}
     plan = plan_day(state)
-    execute_plan(plan, state)
+    execute_plan(plan)
 
 if __name__ == "__main__":
     main()

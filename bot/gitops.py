@@ -22,6 +22,5 @@ def check_commits():
     print(f"Commit check passed: {count} commits today in target repo.")
 
 if __name__ == "__main__":
-    import sys
     if len(sys.argv) > 1 and sys.argv[1] == "check_commits":
         check_commits()

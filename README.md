@@ -33,7 +33,6 @@ This bot can use Gemini to generate real code changes in the target repo.
 Security notes:
 - Do not paste API keys/tokens into chat or commit them to git.
 - The workflow passes secrets via environment variables only.
-  4. Enforces commit policy and performance checks
 - All configuration is managed via `bot/user_config.yaml`.
 
 ## Setup
@@ -61,9 +60,6 @@ python -m bot.main
 - `bot/` — Autonomous bot logic (planner, executor, config, complexity checks)
 - `.github/workflows/autobot.yml` — CI workflow for daily bot execution
 - `bot/user_config.yaml` — Target repo + project prompt configuration
-
-## License
-MIT
 
 ---
 

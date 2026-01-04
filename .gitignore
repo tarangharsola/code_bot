@@ -16,7 +16,6 @@ node_modules/
 *.swp
 
 # Bot
-bot/state.json
 bot/perf_baseline.json
 
 # Frontend artifacts (this repo is automation-only)
