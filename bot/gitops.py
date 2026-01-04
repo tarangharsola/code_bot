@@ -2,14 +2,8 @@ import os
 import subprocess
 import sys
 from bot.config import load_config
-from bot.state import get_state
-
-def git_commit(message):
-    subprocess.run(["git", "add", "."], check=True)
-    subprocess.run(["git", "commit", "-m", message], check=True)
 
 def check_commits():
-    state = get_state()
     config = load_config()
     # Count today's commits in the target repository clone
     target_dir = "target_repo"

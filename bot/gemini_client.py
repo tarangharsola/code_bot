@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -47,6 +48,7 @@ def generate_content(
     prompt: str,
     temperature: float = 0.2,
     timeout_seconds: int = 60,
+    max_retries: int = 4,
 ) -> GeminiResponse:
     """Call Gemini via Google Generative Language API.
 
@@ -70,25 +72,43 @@ def generate_content(
         },
     }
 
-    try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=timeout_seconds)
-    except requests.RequestException as e:
-        raise GeminiError(f"Gemini request failed: {e}") from e
+    last_error: Optional[str] = None
+    for attempt in range(max_retries + 1):
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=timeout_seconds)
+        except requests.RequestException as e:
+            last_error = str(e)
+            resp = None
 
-    if resp.status_code >= 400:
-        raise GeminiError(f"Gemini HTTP {resp.status_code}: {resp.text[:500]}")
+        if resp is None:
+            if attempt < max_retries:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            raise GeminiError(f"Gemini request failed: {last_error}")
 
-    data = resp.json()
-    parts = (
-        data.get("candidates", [{}])[0]
-        .get("content", {})
-        .get("parts", [])
-    )
-    text = "\n".join([p.get("text", "") for p in parts if isinstance(p, dict)])
-    if not text.strip():
-        raise GeminiError("Gemini returned empty output")
+        if resp.status_code in (429, 500, 502, 503, 504):
+            last_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
+            if attempt < max_retries:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            raise GeminiError(f"Gemini transient failure: {last_error}")
 
-    return GeminiResponse(text=text, raw=data)
+        if resp.status_code >= 400:
+            raise GeminiError(f"Gemini HTTP {resp.status_code}: {resp.text[:500]}")
+
+        data = resp.json()
+        parts = (
+            data.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [])
+        )
+        text = "\n".join([p.get("text", "") for p in parts if isinstance(p, dict)])
+        if not text.strip():
+            raise GeminiError("Gemini returned empty output")
+
+        return GeminiResponse(text=text, raw=data)
+
+    raise GeminiError("Gemini request failed")
 
 
 def generate_json(
