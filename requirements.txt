@@ -1,1 +1,2 @@
 # Python requirements for the bot
+PyYAML
