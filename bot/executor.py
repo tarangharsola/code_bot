@@ -130,6 +130,11 @@ Return ONLY a single JSON object with this schema:
   \"deletes\": [string]
 }}
 
+Formatting requirements:
+- Output must be STRICT JSON (double quotes for all keys/strings).
+- Do not wrap in markdown/code fences.
+- No trailing commas.
+
 Rules:
 - Output must be production-quality and efficient (avoid unnecessary abstractions; prefer simple, fast solutions).
 - Prefer minimal dependencies. Do not introduce heavy frameworks unless clearly necessary.

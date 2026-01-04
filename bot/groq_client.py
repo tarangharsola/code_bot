@@ -2,6 +2,7 @@ import json
 import os
 import re
 import time
+import ast
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -60,21 +61,44 @@ def generate_content(
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
     }
-    payload = {
+    base_payload: dict[str, Any] = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [
+            {
+                "role": "system",
+                "content": "Return only valid JSON. Do not include code fences, markdown, or commentary.",
+            },
+            {"role": "user", "content": prompt},
+        ],
         "temperature": temperature,
         # Keep output bounded; large generations burn quota quickly.
         "max_tokens": 4096,
     }
 
+    # Some Groq models support OpenAI-style JSON mode.
+    payloads_to_try: list[dict[str, Any]] = [
+        {**base_payload, "response_format": {"type": "json_object"}},
+        base_payload,
+    ]
+
     last_error: Optional[str] = None
     for attempt in range(max_retries + 1):
-        try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=timeout_seconds)
-        except requests.RequestException as e:
-            last_error = str(e)
-            resp = None
+        resp = None
+        for payload in payloads_to_try:
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=timeout_seconds)
+            except requests.RequestException as e:
+                last_error = str(e)
+                resp = None
+                continue
+
+            # If JSON mode isn't supported, Groq typically returns 400.
+            if resp.status_code == 400:
+                body = (resp.text or "")[:500].lower()
+                if "response_format" in body or "json_object" in body:
+                    resp = None
+                    continue
+            break
 
         if resp is None:
             if attempt < max_retries:
@@ -120,6 +144,23 @@ def generate_json(
     temperature: float = 0.2,
     timeout_seconds: int = 60,
 ) -> dict[str, Any]:
+    def _try_parse(text: str) -> dict[str, Any]:
+        json_text = _extract_json_object(text)
+        try:
+            obj = json.loads(json_text)
+            if not isinstance(obj, dict):
+                raise GroqError("Groq JSON must be an object")
+            return obj
+        except json.JSONDecodeError:
+            # Fallback: sometimes models emit Python dict-like output (single quotes).
+            try:
+                obj2 = ast.literal_eval(json_text)
+            except Exception as e:
+                raise GroqError(f"Failed to parse JSON from Groq: {e}") from e
+            if not isinstance(obj2, dict):
+                raise GroqError("Groq output was not a JSON object")
+            return obj2
+
     resp = generate_content(
         api_key=api_key,
         model=model,
@@ -127,11 +168,23 @@ def generate_json(
         temperature=temperature,
         timeout_seconds=timeout_seconds,
     )
-    json_text = _extract_json_object(resp.text)
     try:
-        return json.loads(json_text)
-    except json.JSONDecodeError as e:
-        raise GroqError(f"Failed to parse JSON from Groq: {e}") from e
+        return _try_parse(resp.text)
+    except GroqError:
+        # One retry with a stricter instruction to return valid JSON only.
+        retry_prompt = (
+            prompt
+            + "\n\nIMPORTANT: Your previous output was invalid JSON. "
+            + "Return ONLY a valid JSON object using double quotes for all keys/strings."
+        )
+        resp2 = generate_content(
+            api_key=api_key,
+            model=model,
+            prompt=retry_prompt,
+            temperature=temperature,
+            timeout_seconds=timeout_seconds,
+        )
+        return _try_parse(resp2.text)
 
 
 def get_api_key_from_env(env_name: str = "GROQ_API_KEY") -> str:
