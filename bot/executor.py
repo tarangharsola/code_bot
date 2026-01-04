@@ -1,6 +1,7 @@
 
 import subprocess
 import os
+from urllib.parse import quote
 from bot.utils import git_commit
 from bot.config import load_config
 
@@ -8,12 +9,15 @@ from bot.config import load_config
 def clone_target_repo():
     config = load_config()
     token_name = config.get('github_token_secret', 'GITHUB_TOKEN')
-    token = os.environ.get(token_name)
+    token = (os.environ.get(token_name) or "").strip()
     if not token:
         raise RuntimeError(f"Missing {token_name} in environment. Please add it as a repository secret and set github_token_secret in config.")
-    repo_url = f"https://x-access-token:{token}@github.com/{config['target_repo']}.git"
+    token_enc = quote(token, safe="")
+    repo_url = f"https://x-access-token:{token_enc}@github.com/{config['target_repo']}.git"
     if not os.path.exists("target_repo"):
         subprocess.run(["git", "clone", repo_url, "target_repo"], check=True)
+    # Ensure origin is correctly set for subsequent pushes (and not left blank)
+    subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True, cwd="target_repo")
     # Ensure commits are attributed to a bot identity inside the target repo
     subprocess.run(["git", "config", "user.name", "Autonomous Bot"], check=True, cwd="target_repo")
     subprocess.run(["git", "config", "user.email", "autobot@users.noreply.github.com"], check=True, cwd="target_repo")
