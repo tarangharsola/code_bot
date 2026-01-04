@@ -12,8 +12,14 @@ def clone_target_repo():
     token = (os.environ.get(token_name) or "").strip()
     if not token:
         raise RuntimeError(f"Missing {token_name} in environment. Please add it as a repository secret and set github_token_secret in config.")
+    # Safe debug (does not print the token)
+    print(f"Auth env '{token_name}' detected (len={len(token)}).")
+
+    gh_user = (config.get("github_username") or "").strip() or "x-access-token"
+    gh_user_enc = quote(gh_user, safe="")
     token_enc = quote(token, safe="")
-    repo_url = f"https://x-access-token:{token_enc}@github.com/{config['target_repo']}.git"
+    # PATs are most reliable as https://<username>:<token>@github.com/<owner>/<repo>.git
+    repo_url = f"https://{gh_user_enc}:{token_enc}@github.com/{config['target_repo']}.git"
     if not os.path.exists("target_repo"):
         subprocess.run(["git", "clone", repo_url, "target_repo"], check=True)
     # Ensure origin is correctly set for subsequent pushes (and not left blank)
