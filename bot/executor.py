@@ -102,7 +102,10 @@ def ai_step(step: dict) -> None:
     api_key = get_api_key_from_env(config.get("gemini_api_key_env", "GEMINI_API_KEY"))
     model = (config.get("gemini_model") or "gemini-1.5-flash").strip()
 
-    project_prompt = config.get("project_prompt", "")
+    project_prompt = (config.get("project_prompt", "") or "").strip()
+    # Keep prompts bounded to reduce token usage/quota burn.
+    if len(project_prompt) > 3000:
+        project_prompt = project_prompt[:3000].rstrip() + "\n\n(Truncated for brevity.)"
     task = (step.get("task") or step.get("description") or "").strip()
     if not task:
         raise RuntimeError("AI step missing task/description")

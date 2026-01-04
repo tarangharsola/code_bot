@@ -156,9 +156,26 @@ def generate_content(
             raise GeminiError(f"Gemini request failed: {last_error}")
 
         if resp.status_code in (429, 500, 502, 503, 504):
-            last_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
+            body_preview = resp.text[:500]
+            # If the account quota is exhausted, retries won't help.
+            if resp.status_code == 429 and (
+                "exceeded your current quota" in body_preview.lower()
+                or "check your plan" in body_preview.lower()
+                or "billing" in body_preview.lower()
+            ):
+                raise GeminiError(
+                    "Gemini quota exceeded for this API key. "
+                    "Enable billing/upgrade plan or use a key with available quota. "
+                    f"Response: {body_preview}"
+                )
+
+            last_error = f"HTTP {resp.status_code}: {body_preview[:200]}"
             if attempt < max_retries:
-                time.sleep(1.5 * (attempt + 1))
+                retry_after = resp.headers.get("Retry-After")
+                if retry_after and retry_after.isdigit():
+                    time.sleep(min(60, int(retry_after)))
+                else:
+                    time.sleep(min(60, 2 ** (attempt + 1)))
                 continue
             raise GeminiError(f"Gemini transient failure: {last_error}")
 
