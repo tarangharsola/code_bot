@@ -9,7 +9,7 @@ jobs:
   autobot:
     runs-on: ubuntu-latest
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TARGET_REPO_PAT: ${{ secrets.TARGET_REPO_PAT }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
