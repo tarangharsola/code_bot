@@ -99,6 +99,7 @@ def _repo_snapshot(max_files: int = 200) -> str:
 
 def ai_step(step: dict) -> None:
     """Use Groq to generate a small changeset and apply it."""
+    import re
     config = load_config()
     api_key = get_api_key_from_env(config.get("groq_api_key_env", "GROQ_API_KEY"))
     model = (config.get("groq_model") or "llama-3.1-8b-instant").strip()
@@ -149,22 +150,39 @@ Formatting requirements:
             "- For any file ending in .tsx, .ts, .js, or .jsx, the 'content' value must be valid, complete, and properly formatted code for that file type.\n"
             "- Do NOT return code as a JSON string, not as a Python dict, and not as a markdown block.\n"
             "- The 'content' must be directly usable as a source file.\n"
+            "- Example for .tsx: Start with 'import' or 'export', and include a valid React component.\n"
         )
     prompt += "\nRules:\n- Output must be production-quality and efficient (avoid unnecessary abstractions; prefer simple, fast solutions).\n- Prefer minimal dependencies. Do not introduce heavy frameworks unless clearly necessary.\n- Only write source/config/docs files. Do NOT add node_modules, lockfiles, or large vendor bundles.\n- Keep changes minimal and commit-scoped (small PR-sized changes).\n- Paths must be relative and must not contain '..'.\n- Prefer updating existing files over creating many new ones.\n- Avoid placeholder code and TODOs.\n"
 
-    try:
-        obj = generate_json(api_key=api_key, model=model, prompt=prompt)
-        changeset = parse_changeset(obj)
-        validate_size(changeset)
-        # Post-process: unwrap code if AI returned a JSON string for code files
-        for w in changeset.writes:
-            if w.path.endswith(code_file_exts) and w.content.strip().startswith('{') and w.content.strip().endswith('}'):
-                # Looks like a JSON string, not code. Try to extract code block.
-                code_match = re.search(r"```[a-zA-Z]*\\s*([\s\S]+?)```", w.content)
-                if code_match:
-                    w.content = code_match.group(1).strip()
-    except (GroqError, ProtocolError) as e:
-        raise RuntimeError(f"AI generation failed: {e}") from e
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            obj = generate_json(api_key=api_key, model=model, prompt=prompt)
+            changeset = parse_changeset(obj)
+            validate_size(changeset)
+            # Post-process: unwrap code if AI returned a JSON string for code files
+            for w in changeset.writes:
+                if w.path.endswith(code_file_exts):
+                    code = w.content.strip()
+                    # If code is a JSON string or not valid code, retry
+                    if code.startswith('{') and code.endswith('}'):
+                        code_match = re.search(r"```[a-zA-Z]*\\s*([\s\S]+?)```", code)
+                        if code_match:
+                            w.content = code_match.group(1).strip()
+                        else:
+                            if attempt < max_retries - 1:
+                                prompt += "\nIMPORTANT: Your previous output for 'content' was a JSON string. Return ONLY valid code for the file, not JSON."
+                                raise GroqError("AI returned JSON string for code file")
+                    # Basic code validation: must start with import/export/component
+                    elif not (code.startswith('import') or code.startswith('export') or 'function' in code or 'const' in code or 'class' in code):
+                        if attempt < max_retries - 1:
+                            prompt += "\nIMPORTANT: Your previous output for 'content' was not valid code. Return ONLY valid code for the file."
+                            raise GroqError("AI returned invalid code for code file")
+            break
+        except (GroqError, ProtocolError) as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"AI generation failed: {e}") from e
+            continue
 
     for p in changeset.deletes:
         _delete_file(p)

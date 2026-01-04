@@ -1,5 +1,7 @@
 import sys
 import subprocess
+import time
+from datetime import datetime, timedelta
 
 from bot.planner import plan_day
 from bot.executor import execute_plan, clone_target_repo
@@ -9,21 +11,30 @@ def main():
     config = load_config()
     commits_per_day = int(config.get("min_commits_per_day", 3))
     total_days = int(config.get("project_duration", 60))
+    min_commit_interval_hours = int(config.get("min_commit_interval_hours", 3))
 
     # Ensure we have the target repo clone available for git-based state.
     clone_target_repo()
 
-    # If we've already produced today's commits (rerun / retry), exit cleanly.
+    # Get today's commits and their timestamps
     today_count = subprocess.run(
-        ["git", "-C", "target_repo", "log", "--since=midnight", "--oneline"],
+        ["git", "-C", "target_repo", "log", "--since=midnight", "--pretty=%ct"],
         check=True,
         capture_output=True,
         text=True,
     ).stdout
-    commits_today = len([l for l in today_count.splitlines() if l.strip()])
-    if commits_today >= commits_per_day:
-        print(f"Already have {commits_today} commits today in target repo; nothing to do.")
-        return
+    commit_times = [int(l.strip()) for l in today_count.splitlines() if l.strip()]
+    commits_today = len(commit_times)
+    now = int(time.time())
+
+    # Enforce minimum interval between commits
+    if commit_times:
+        last_commit_time = max(commit_times)
+        next_allowed_time = last_commit_time + min_commit_interval_hours * 3600
+        if now < next_allowed_time:
+            wait_minutes = int((next_allowed_time - now) / 60)
+            print(f"Last commit was too recent. Next commit allowed in {wait_minutes} minutes.")
+            return
 
     # Derive day from total commit count in the target repo.
     total_commit_count = int(
@@ -42,7 +53,12 @@ def main():
 
     state = {"current_day": current_day, "total_days": total_days}
     plan = plan_day(state)
-    execute_plan(plan)
+    # Only block if fewer than min_commits_per_day and interval not met; allow extra commits if planner generates more steps.
+    if commits_today < commits_per_day:
+        execute_plan(plan)
+    else:
+        print(f"Minimum {commits_per_day} commits reached; allowing extra commits if planner generates more steps.")
+        execute_plan(plan)
 
 if __name__ == "__main__":
     main()
