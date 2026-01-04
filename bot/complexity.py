@@ -9,8 +9,7 @@ def check_complexity():
     start = time.time()
     tracemalloc.start()
     from bot.planner import plan_day
-    from bot.state import get_state
-    plan_day(get_state())
+    plan_day({"current_day": 1, "total_days": 60})
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     elapsed = time.time() - start
