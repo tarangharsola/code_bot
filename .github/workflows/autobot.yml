@@ -23,7 +23,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Autonomous Bot
-        run: python bot/main.py
+        run: python -m bot.main
 
       - name: Run Complexity & Performance Checks
         run: python bot/complexity.py && python bot/perfguard.py
