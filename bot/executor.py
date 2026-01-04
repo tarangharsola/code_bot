@@ -3,7 +3,7 @@ import os
 from urllib.parse import quote
 
 from bot.ai_protocol import parse_changeset, validate_size, ProtocolError
-from bot.gemini_client import generate_json, get_api_key_from_env, GeminiError
+from bot.groq_client import generate_json, get_api_key_from_env, GroqError
 from bot.utils import git_commit
 from bot.config import load_config
 
@@ -97,10 +97,10 @@ def _repo_snapshot(max_files: int = 200) -> str:
 
 
 def ai_step(step: dict) -> None:
-    """Use Gemini to generate a small changeset and apply it."""
+    """Use Groq to generate a small changeset and apply it."""
     config = load_config()
-    api_key = get_api_key_from_env(config.get("gemini_api_key_env", "GEMINI_API_KEY"))
-    model = (config.get("gemini_model") or "gemini-1.5-flash").strip()
+    api_key = get_api_key_from_env(config.get("groq_api_key_env", "GROQ_API_KEY"))
+    model = (config.get("groq_model") or "llama-3.1-8b-instant").strip()
 
     project_prompt = (config.get("project_prompt", "") or "").strip()
     # Keep prompts bounded to reduce token usage/quota burn.
@@ -144,7 +144,7 @@ Rules:
         obj = generate_json(api_key=api_key, model=model, prompt=prompt)
         changeset = parse_changeset(obj)
         validate_size(changeset)
-    except (GeminiError, ProtocolError) as e:
+    except (GroqError, ProtocolError) as e:
         raise RuntimeError(f"AI generation failed: {e}") from e
 
     for p in changeset.deletes:

@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TARGET_REPO_PAT: ${{ secrets.TARGET_REPO_PAT }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

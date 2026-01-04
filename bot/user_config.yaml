@@ -4,9 +4,9 @@ target_repo: "tarangharsola/awesome-project"
 github_token_secret: "TARGET_REPO_PAT"
 
 # Optional AI settings (recommended)
-# Add GEMINI_API_KEY as a GitHub Actions secret in this bot repo.
-gemini_model: "gemini-1.5-flash-latest"
-gemini_api_key_env: "GEMINI_API_KEY"
+# Add GROQ_API_KEY as a GitHub Actions secret in this bot repo.
+groq_model: "llama-3.1-8b-instant"
+groq_api_key_env: "GROQ_API_KEY"
 project_prompt: |
   Build a collaborative code editor web application with real-time multi-user editing capabilities.
 
