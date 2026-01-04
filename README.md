@@ -20,6 +20,19 @@ The end result is that **the whole web application lives in the target repo** â€
   1. Clones the target repo
   2. Plans 6 incremental improvements
   3. Applies changes, commits, and pushes
+
+## Gemini (AI) setup
+
+This bot can use Gemini to generate real code changes in the target repo.
+
+- Add a repository secret in THIS bot repo:
+   - `GEMINI_API_KEY`: your Gemini API key
+- Add/verify the existing target repo secret in THIS bot repo:
+   - `TARGET_REPO_PAT`: a GitHub Personal Access Token that can push to the target repo
+
+Security notes:
+- Do not paste API keys/tokens into chat or commit them to git.
+- The workflow passes secrets via environment variables only.
   4. Enforces commit policy and performance checks
 - All configuration is managed via `bot/user_config.yaml`.
 

@@ -2,6 +2,9 @@
 import subprocess
 import os
 from urllib.parse import quote
+
+from bot.ai_protocol import parse_changeset, validate_size, ProtocolError
+from bot.gemini_client import generate_json, get_api_key_from_env, GeminiError
 from bot.utils import git_commit
 from bot.config import load_config
 
@@ -46,18 +49,20 @@ def execute_plan(plan, state):
         for step in plan:
             action = step['action']
             # Each action is mapped to a function
-                        if action == "scaffold_frontend":
-                                scaffold_frontend()
-                        elif action == "add_base_styles":
-                                add_base_styles()
-                        elif action == "add_room_routing":
-                                add_room_routing()
-                        elif action == "add_monaco_editor":
-                                add_monaco_editor()
-                        elif action == "add_yjs_collab":
-                                add_yjs_collab()
-                        elif action == "add_server_and_docs":
-                                add_server_and_docs()
+            if action == "ai_step":
+                ai_step(step)
+            elif action == "scaffold_frontend":
+                scaffold_frontend()
+            elif action == "add_base_styles":
+                add_base_styles()
+            elif action == "add_room_routing":
+                add_room_routing()
+            elif action == "add_monaco_editor":
+                add_monaco_editor()
+            elif action == "add_yjs_collab":
+                add_yjs_collab()
+            elif action == "add_server_and_docs":
+                add_server_and_docs()
                         elif action == "improve_connection_ux":
                                 improve_connection_ux()
                         elif action == "improve_presence_panel":
@@ -75,6 +80,91 @@ def _write_file(path: str, content: str) -> None:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "w", encoding="utf-8", newline="\n") as f:
                 f.write(content)
+
+
+    def _delete_file(path: str) -> None:
+        if os.path.isdir(path):
+            return
+        if os.path.exists(path):
+            os.remove(path)
+
+
+    def _repo_snapshot(max_files: int = 200) -> str:
+        """Lightweight repo context for the model (paths only)."""
+        try:
+            out = subprocess.run(
+                ["git", "ls-files"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            files = [l.strip() for l in out.splitlines() if l.strip()]
+        except Exception:
+            files = []
+
+        deny_prefixes = (
+            "node_modules/",
+            ".git/",
+            "dist/",
+            "build/",
+            ".venv/",
+        )
+        filtered = [f for f in files if not f.startswith(deny_prefixes)]
+        if len(filtered) > max_files:
+            filtered = filtered[:max_files]
+        return "\n".join(filtered)
+
+
+    def ai_step(step: dict) -> None:
+        """Use Gemini to generate a small changeset and apply it."""
+        config = load_config()
+        api_key = get_api_key_from_env(config.get("gemini_api_key_env", "GEMINI_API_KEY"))
+        model = (config.get("gemini_model") or "gemini-1.5-flash").strip()
+
+        project_prompt = config.get("project_prompt", "")
+        task = (step.get("task") or step.get("description") or "").strip()
+        if not task:
+            raise RuntimeError("AI step missing task/description")
+
+        snapshot = _repo_snapshot()
+
+        prompt = f"""You are a senior full-stack engineer.
+
+    Repository goal:
+    {project_prompt}
+
+    Current repository file list (may be truncated):
+    {snapshot}
+
+    Task for this commit:
+    {task}
+
+    Return ONLY a single JSON object with this schema:
+    {{
+      \"summary\": string,
+      \"writes\": [{{\"path\": string, \"content\": string}}],
+      \"deletes\": [string]
+    }}
+
+    Rules:
+    - Only write source/config/docs files. Do NOT add node_modules or large vendor bundles.
+    - Keep changes minimal and commit-scoped.
+    - Paths must be relative and must not contain '..'.
+    - Prefer updating existing files over creating many new ones.
+    """
+
+        try:
+            obj = generate_json(api_key=api_key, model=model, prompt=prompt)
+            changeset = parse_changeset(obj)
+            validate_size(changeset)
+        except (GeminiError, ProtocolError) as e:
+            raise RuntimeError(f"AI generation failed: {e}") from e
+
+        # Apply changes
+        for p in changeset.deletes:
+            _delete_file(p)
+        for w in changeset.writes:
+            _write_file(w.path, w.content)
 
 
 def _append_if_missing(path: str, marker: str, content: str) -> None:

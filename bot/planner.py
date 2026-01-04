@@ -3,21 +3,31 @@ def plan_day(state):
     # Always generate 6 meaningful, incremental improvements per day
     plan = []
     if day == 1:
+        tasks = [
+            "Scaffold a production-ready web app project (frontend + backend if needed) with clear run instructions.",
+            "Implement the core UI shell and routing for shareable collaborative rooms (unique URLs).",
+            "Add a real code editor component with syntax highlighting for JavaScript, Python, and HTML.",
+            "Add real-time sync using a CRDT/OT library and a WebSocket server (no placeholders).",
+            "Add live cursor/presence indicators + active users panel with stable colors.",
+            "Add robust connection/reconnection UX and update README with complete local run steps."
+        ]
         plan = [
-            {"description": "Scaffold Vite + React + TS", "action": "scaffold_frontend"},
-            {"description": "Add base styling + layout", "action": "add_base_styles"},
-            {"description": "Add Monaco editor", "action": "add_monaco_editor"},
-            {"description": "Add Yjs realtime collaboration", "action": "add_yjs_collab"},
-            {"description": "Add collaborative room routing", "action": "add_room_routing"},
-            {"description": "Add collaboration server + docs", "action": "add_server_and_docs"},
+            {"description": f"AI: {t}", "action": "ai_step", "task": t}
+            for t in tasks
         ]
     else:
-        # For subsequent days, rotate through refinement, polish, accessibility, and other improvements
-        for i in range(6):
-            if i % 3 == 0:
-                plan.append({"description": f"Improve connection UX {i+1}", "action": "improve_connection_ux"})
-            elif i % 3 == 1:
-                plan.append({"description": f"Improve presence panel {i+1}", "action": "improve_presence_panel"})
-            else:
-                plan.append({"description": f"Improve editor ergonomics {i+1}", "action": "improve_editor_ergonomics"})
+        tasks = [
+            "Harden realtime collaboration: conflict handling, reconnection, and awareness consistency.",
+            "Improve editor UX: language switching, formatting defaults, and better keyboard shortcuts.",
+            "Add connection status indicator and retry/backoff behavior.",
+            "Improve active users panel and cursor labels (no neon/purple; readable on dark mode).",
+            "Add basic tests or smoke checks and a build script so CI can validate the app.",
+            "Refactor for maintainability: split modules, improve types, and reduce complexity hotspots."
+        ]
+        # Rotate tasks by day so work changes over time.
+        rotated = tasks[day % len(tasks):] + tasks[: day % len(tasks)]
+        plan = [
+            {"description": f"AI: {t}", "action": "ai_step", "task": t}
+            for t in rotated[:6]
+        ]
     return plan
