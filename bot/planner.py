@@ -1,25 +1,23 @@
-from datetime import datetime
-
 def plan_day(state):
     day = state['current_day']
     # Always generate 6 meaningful, incremental improvements per day
     plan = []
     if day == 1:
         plan = [
-            {"description": "Add semantic HTML structure", "action": "add_html_structure"},
-            {"description": "Add base CSS reset", "action": "add_base_css"},
-            {"description": "Add favicon and robots.txt", "action": "add_favicon_robots"},
-            {"description": "Add layout system", "action": "add_layout_system"},
-            {"description": "Add typography", "action": "add_typography"},
-            {"description": "Add navigation header", "action": "add_header"},
+            {"description": "Scaffold Vite + React + TS", "action": "scaffold_frontend"},
+            {"description": "Add base styling + layout", "action": "add_base_styles"},
+            {"description": "Add Monaco editor", "action": "add_monaco_editor"},
+            {"description": "Add Yjs realtime collaboration", "action": "add_yjs_collab"},
+            {"description": "Add collaborative room routing", "action": "add_room_routing"},
+            {"description": "Add collaboration server + docs", "action": "add_server_and_docs"},
         ]
     else:
         # For subsequent days, rotate through refinement, polish, accessibility, and other improvements
         for i in range(6):
             if i % 3 == 0:
-                plan.append({"description": f"Refine section {(day+i)%5+1}", "action": "refine_section"})
+                plan.append({"description": f"Improve connection UX {i+1}", "action": "improve_connection_ux"})
             elif i % 3 == 1:
-                plan.append({"description": f"Polish micro-interactions {(day+i)%3+1}", "action": "polish_micro"})
+                plan.append({"description": f"Improve presence panel {i+1}", "action": "improve_presence_panel"})
             else:
-                plan.append({"description": f"Accessibility improvement {(day+i)%4+1}", "action": "accessibility"})
+                plan.append({"description": f"Improve editor ergonomics {i+1}", "action": "improve_editor_ergonomics"})
     return plan
