@@ -26,7 +26,7 @@ jobs:
         run: python -m bot.main
 
       - name: Run Complexity & Performance Checks
-        run: python bot/complexity.py && python bot/perfguard.py
+        run: python -m bot.complexity && python -m bot.perfguard
 
       - name: Enforce Commit Policy
-        run: python bot/gitops.py check_commits
+        run: python -m bot.gitops check_commits
