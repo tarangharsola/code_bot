@@ -1,6 +1,7 @@
 import subprocess
 import os
 from urllib.parse import quote
+import re
 
 from bot.ai_protocol import parse_changeset, validate_size, ProtocolError
 from bot.groq_client import generate_json, get_api_key_from_env, GroqError
@@ -112,6 +113,14 @@ def ai_step(step: dict) -> None:
 
     snapshot = _repo_snapshot()
 
+    # If any .tsx/.ts/.js/.jsx file is being written, demand strict code output.
+    code_file_exts = (".tsx", ".ts", ".js", ".jsx")
+    code_file_task = False
+    if "writes" in step:
+        code_file_task = any(str(w.get("path", "")).endswith(code_file_exts) for w in step["writes"] if isinstance(w, dict))
+    if not code_file_task and any(ext in task for ext in code_file_exts):
+        code_file_task = True
+
     prompt = f"""You are a senior full-stack engineer.
 
 Repository goal:
@@ -134,21 +143,26 @@ Formatting requirements:
 - Output must be STRICT JSON (double quotes for all keys/strings).
 - Do not wrap in markdown/code fences.
 - No trailing commas.
-
-Rules:
-- Output must be production-quality and efficient (avoid unnecessary abstractions; prefer simple, fast solutions).
-- Prefer minimal dependencies. Do not introduce heavy frameworks unless clearly necessary.
-- Only write source/config/docs files. Do NOT add node_modules, lockfiles, or large vendor bundles.
-- Keep changes minimal and commit-scoped (small PR-sized changes).
-- Paths must be relative and must not contain '..'.
-- Prefer updating existing files over creating many new ones.
-- Avoid placeholder code and TODOs.
 """
+    if code_file_task:
+        prompt += (
+            "- For any file ending in .tsx, .ts, .js, or .jsx, the 'content' value must be valid, complete, and properly formatted code for that file type.\n"
+            "- Do NOT return code as a JSON string, not as a Python dict, and not as a markdown block.\n"
+            "- The 'content' must be directly usable as a source file.\n"
+        )
+    prompt += "\nRules:\n- Output must be production-quality and efficient (avoid unnecessary abstractions; prefer simple, fast solutions).\n- Prefer minimal dependencies. Do not introduce heavy frameworks unless clearly necessary.\n- Only write source/config/docs files. Do NOT add node_modules, lockfiles, or large vendor bundles.\n- Keep changes minimal and commit-scoped (small PR-sized changes).\n- Paths must be relative and must not contain '..'.\n- Prefer updating existing files over creating many new ones.\n- Avoid placeholder code and TODOs.\n"
 
     try:
         obj = generate_json(api_key=api_key, model=model, prompt=prompt)
         changeset = parse_changeset(obj)
         validate_size(changeset)
+        # Post-process: unwrap code if AI returned a JSON string for code files
+        for w in changeset.writes:
+            if w.path.endswith(code_file_exts) and w.content.strip().startswith('{') and w.content.strip().endswith('}'):
+                # Looks like a JSON string, not code. Try to extract code block.
+                code_match = re.search(r"```[a-zA-Z]*\\s*([\s\S]+?)```", w.content)
+                if code_match:
+                    w.content = code_match.group(1).strip()
     except (GroqError, ProtocolError) as e:
         raise RuntimeError(f"AI generation failed: {e}") from e
 
