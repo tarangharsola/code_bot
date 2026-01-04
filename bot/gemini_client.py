@@ -18,6 +18,73 @@ class GeminiError(RuntimeError):
     pass
 
 
+def _normalize_model(model: str) -> str:
+    m = (model or "").strip()
+    if not m:
+        return m
+    # Accept either "models/<name>" or "<name>".
+    if m.startswith("models/"):
+        return m[len("models/") :]
+    return m
+
+
+def list_models(*, api_key: str, timeout_seconds: int = 30) -> list[dict[str, Any]]:
+    """List models available to this API key.
+
+    Used to auto-recover from "model not found" errors.
+    """
+    if not api_key:
+        raise GeminiError("Missing Gemini API key")
+    url = "https://generativelanguage.googleapis.com/v1beta/models"
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key,
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=timeout_seconds)
+    except requests.RequestException as e:
+        raise GeminiError(f"ListModels request failed: {e}") from e
+    if resp.status_code >= 400:
+        raise GeminiError(f"ListModels HTTP {resp.status_code}: {resp.text[:500]}")
+    data = resp.json() or {}
+    models = data.get("models", [])
+    return models if isinstance(models, list) else []
+
+
+def _pick_fallback_model(models: list[dict[str, Any]]) -> Optional[str]:
+    """Pick a model name (without 'models/' prefix) that supports generateContent."""
+    candidates: list[str] = []
+    for m in models:
+        if not isinstance(m, dict):
+            continue
+        name = m.get("name")
+        methods = m.get("supportedGenerationMethods") or []
+        if not isinstance(name, str) or not isinstance(methods, list):
+            continue
+        if "generateContent" not in methods:
+            continue
+        # Name comes back as "models/<id>".
+        model_id = _normalize_model(name)
+        candidates.append(model_id)
+
+    if not candidates:
+        return None
+
+    # Prefer flash, then pro, then anything else.
+    preferred = [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+    ]
+    for p in preferred:
+        for c in candidates:
+            if p in c:
+                return c
+
+    return candidates[0]
+
+
 def _extract_json_object(text: str) -> str:
     """Extract a JSON object from model text.
 
@@ -56,6 +123,7 @@ def generate_content(
     """
     if not api_key:
         raise GeminiError("Missing Gemini API key")
+    model = _normalize_model(model)
     if not model:
         raise GeminiError("Missing Gemini model")
 
@@ -73,6 +141,7 @@ def generate_content(
     }
 
     last_error: Optional[str] = None
+    did_model_fallback = False
     for attempt in range(max_retries + 1):
         try:
             resp = requests.post(url, headers=headers, json=payload, timeout=timeout_seconds)
@@ -92,6 +161,22 @@ def generate_content(
                 time.sleep(1.5 * (attempt + 1))
                 continue
             raise GeminiError(f"Gemini transient failure: {last_error}")
+
+        if resp.status_code == 404 and not did_model_fallback:
+            # Model name/version mismatch is common across API versions / key entitlements.
+            # Try to recover by listing models and selecting one that supports generateContent.
+            try:
+                available = list_models(api_key=api_key)
+                fallback = _pick_fallback_model(available)
+            except GeminiError:
+                fallback = None
+            if fallback and fallback != model:
+                model = fallback
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                did_model_fallback = True
+                if attempt < max_retries:
+                    time.sleep(0.5)
+                    continue
 
         if resp.status_code >= 400:
             raise GeminiError(f"Gemini HTTP {resp.status_code}: {resp.text[:500]}")
