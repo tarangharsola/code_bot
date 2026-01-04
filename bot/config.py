@@ -1,14 +1,22 @@
-import os
+from __future__ import annotations
+
+from pathlib import Path
+
 import yaml
 
-CONFIG_PATH = "bot/user_config.yaml"
 
-def load_config():
-    if not os.path.exists(CONFIG_PATH):
+def _repo_root() -> Path:
+    # bot/config.py -> bot/ -> repo root
+    return Path(__file__).resolve().parents[1]
+
+
+def load_config() -> dict:
+    config_path = _repo_root() / "bot" / "user_config.yaml"
+    if not config_path.exists():
         raise RuntimeError(
-            f"User config not found. Please create {CONFIG_PATH} with required fields."
+            f"User config not found. Please create {config_path.as_posix()} with required fields."
         )
-    with open(CONFIG_PATH, "r") as f:
+    with config_path.open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     required = [
         "user_name", "github_username", "target_repo", "github_token_secret",
