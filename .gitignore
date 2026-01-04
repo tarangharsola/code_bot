@@ -18,7 +18,16 @@ node_modules/
 # Bot
 bot/state.json
 bot/perf_baseline.json
-bot/perf_baseline.json
+
+# Frontend artifacts (this repo is automation-only)
+src/
+public/
+index.html
+package.json
+package-lock.json
+pnpm-lock.yaml
+tsconfig.json
+vite.config.*
 
 # Target repo clone
 target_repo/

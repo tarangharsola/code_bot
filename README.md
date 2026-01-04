@@ -1,6 +1,8 @@
 # Autonomous Collaborative Code Editor Bot
 
-This project is a fully autonomous system that incrementally builds a collaborative code editor web application over 60 days, making exactly 6 real Git commits every day. The bot runs in the cloud via GitHub Actions and enforces complexity and performance checks on every run.
+This repository (`code_bot`) contains the automation (the bot + CI). The bot runs daily in GitHub Actions and **writes the actual application code into your target repository** (configured in `bot/user_config.yaml`, currently `tarangharsola/awesome-project`).
+
+The end result is that **the whole web application lives in the target repo** — this repo only exists to run the self-operating developer bot.
 
 ## Features
 - **Collaborative Code Editor:** Real-time multi-user editing with syntax highlighting for JavaScript, Python, and HTML.
@@ -13,7 +15,7 @@ This project is a fully autonomous system that incrementally builds a collaborat
 - **Complexity & Performance Checks:** Ensures efficient, scalable code with every commit.
 
 ## How It Works
-- The bot lives in the `code_bot` repository and writes code into the target repo (`awesome-project`).
+- The bot lives in this repository (`code_bot`) and writes code into the target repo (`awesome-project`).
 - Every day, the bot:
   1. Clones the target repo
   2. Plans 6 incremental improvements
@@ -44,9 +46,8 @@ python -m bot.main
 
 ## Project Structure
 - `bot/` — Autonomous bot logic (planner, executor, config, complexity checks)
-- `src/` — Frontend code (React, TypeScript, styles)
 - `.github/workflows/autobot.yml` — CI workflow for daily bot execution
-- `bot/user_config.yaml` — User/project configuration
+- `bot/user_config.yaml` — Target repo + project prompt configuration
 
 ## License
 MIT
