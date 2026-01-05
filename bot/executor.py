@@ -53,7 +53,11 @@ def execute_plan(plan):
                 ai_step(step)
             else:
                 raise Exception(f"Unknown action: {action}")
-            git_commit(step['description'])
+            # Use a clean commit message (no 'AI:' prefix)
+            msg = step.get('description', '').strip()
+            if msg.lower().startswith('ai:'):
+                msg = msg[3:].strip()
+            git_commit(msg)
         subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
     finally:
         os.chdir(cwd)
