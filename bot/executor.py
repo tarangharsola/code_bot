@@ -158,6 +158,13 @@ Formatting requirements:
     for attempt in range(max_retries):
         try:
             obj = generate_json(api_key=api_key, model=model, prompt=prompt)
+            # Filter out writes with missing/invalid path before parsing
+            if "writes" in obj and isinstance(obj["writes"], list):
+                obj["writes"] = [w for w in obj["writes"] if isinstance(w, dict) and w.get("path") and isinstance(w.get("path"), str)]
+                if any(w.get("path") is None for w in obj["writes"]):
+                    if attempt < max_retries - 1:
+                        prompt += "\nIMPORTANT: Your previous output had missing or invalid 'path' values in 'writes'. All writes must have a valid relative file path as a string."
+                        raise GroqError("AI returned write with missing path")
             changeset = parse_changeset(obj)
             validate_size(changeset)
             # Post-process: unwrap code if AI returned a JSON string for code files
