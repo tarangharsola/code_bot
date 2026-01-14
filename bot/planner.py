@@ -3,8 +3,8 @@ import random
 def plan_day(state):
     day = state['current_day']
     min_commits = 6
-    max_commits = 12  # You can adjust this upper bound as desired
-    num_commits = random.randint(min_commits, max_commits)
+    # No upper limit: use all available tasks, repeat if needed, but always at least 6
+    # If you want to allow more, expand the tasks list or logic
     plan = []
     if day == 1:
         tasks = [
@@ -15,7 +15,7 @@ def plan_day(state):
             "Add live cursor/presence indicators + active users panel with stable colors.",
             "Add robust connection/reconnection UX and update README with complete local run steps."
         ]
-        # Repeat or cycle tasks if num_commits > len(tasks)
+        num_commits = max(min_commits, len(tasks))
         full_tasks = (tasks * ((num_commits // len(tasks)) + 1))[:num_commits]
         plan = [
             {"description": f"AI: {t}", "action": "ai_step", "task": t}
@@ -32,7 +32,7 @@ def plan_day(state):
         ]
         # Rotate tasks by day so work changes over time.
         rotated = tasks[day % len(tasks):] + tasks[: day % len(tasks)]
-        # Repeat or cycle tasks if num_commits > len(rotated)
+        num_commits = max(min_commits, len(rotated))
         full_tasks = (rotated * ((num_commits // len(rotated)) + 1))[:num_commits]
         plan = [
             {"description": f"AI: {t}", "action": "ai_step", "task": t}
