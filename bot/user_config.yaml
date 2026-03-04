@@ -1,5 +1,6 @@
 user_name: "Tarang Harsola"
 github_username: "tarangharsola"
+git_email: "tarang.harsola@gmail.com"
 target_repo: "tarangharsola/awesome-project"
 github_token_secret: "TARGET_REPO_PAT"
 

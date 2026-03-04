@@ -37,9 +37,11 @@ def clone_target_repo():
         subprocess.run(["git", "clone", repo_url, "target_repo"], check=True)
     # Ensure origin is correctly set for subsequent pushes (and not left blank)
     subprocess.run(["git", "remote", "set-url", "origin", repo_url], check=True, cwd="target_repo")
-    # Ensure commits are attributed to a bot identity inside the target repo
-    subprocess.run(["git", "config", "user.name", "Autonomous Bot"], check=True, cwd="target_repo")
-    subprocess.run(["git", "config", "user.email", "autobot@users.noreply.github.com"], check=True, cwd="target_repo")
+    # Ensure commits are attributed to the configured user identity inside the target repo
+    user_name = (config.get("user_name") or config.get("github_username") or "Autonomous Bot").strip()
+    user_email = (config.get("git_email") or f"{gh_user}@users.noreply.github.com").strip()
+    subprocess.run(["git", "config", "user.name", user_name], check=True, cwd="target_repo")
+    subprocess.run(["git", "config", "user.email", user_email], check=True, cwd="target_repo")
 
 
 def execute_plan(plan):
