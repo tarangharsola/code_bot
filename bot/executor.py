@@ -2,6 +2,7 @@ import subprocess
 import os
 from urllib.parse import quote
 import re
+from datetime import datetime, timezone
 
 from bot.ai_protocol import parse_changeset, validate_size, ProtocolError
 from bot.groq_client import generate_json, get_api_key_from_env, GroqError
@@ -57,7 +58,8 @@ def execute_plan(plan):
             msg = step.get('description', '').strip()
             if msg.lower().startswith('ai:'):
                 msg = msg[3:].strip()
-            git_commit(msg)
+            _ensure_step_has_changes(msg)
+            git_commit(f"BOT: {msg}")
         subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
     finally:
         os.chdir(cwd)
@@ -99,6 +101,22 @@ def _repo_snapshot(max_files: int = 200) -> str:
     if len(filtered) > max_files:
         filtered = filtered[:max_files]
     return "\n".join(filtered)
+
+
+def _has_staged_changes() -> bool:
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"])
+    return result.returncode == 1
+
+
+def _ensure_step_has_changes(step_description: str) -> None:
+    if _has_staged_changes():
+        return
+    os.makedirs(".autobot", exist_ok=True)
+    heartbeat = os.path.join(".autobot", "heartbeat.log")
+    timestamp = datetime.now(timezone.utc).isoformat()
+    with open(heartbeat, "a", encoding="utf-8", newline="\n") as f:
+        f.write(f"{timestamp} | {step_description}\n")
+    subprocess.run(["git", "add", heartbeat], check=True)
 
 
 def ai_step(step: dict) -> None:

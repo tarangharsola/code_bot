@@ -36,16 +36,18 @@ def main():
             print(f"Last commit was too recent. Next commit allowed in {wait_minutes} minutes.")
             return
 
-    # Derive day from total commit count in the target repo.
-    total_commit_count = int(
-        subprocess.run(
-            ["git", "-C", "target_repo", "rev-list", "--count", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    )
-    current_day = max(1, (total_commit_count // commits_per_day) + 1)
+    # Derive day from bot-authored commits only, so existing repo history doesn't block progress.
+    bot_log = subprocess.run(
+        ["git", "-C", "target_repo", "log", "--grep=^BOT:", "--oneline"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    bot_commit_count = len([line for line in bot_log.splitlines() if line.strip()])
+    if bot_commit_count == 0:
+        current_day = 1
+    else:
+        current_day = (bot_commit_count // commits_per_day) + 1
 
     if current_day > total_days:
         print("Website build complete.")

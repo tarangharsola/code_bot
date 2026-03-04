@@ -1,8 +1,10 @@
 import random
+from bot.config import load_config
 
 def plan_day(state):
     day = state['current_day']
-    min_commits = 6
+    config = load_config()
+    min_commits = int(config.get("min_commits_per_day", 6))
     # No upper limit: use all available tasks, repeat if needed, but always at least 6
     # If you want to allow more, expand the tasks list or logic
     plan = []
