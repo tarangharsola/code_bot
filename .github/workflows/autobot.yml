@@ -23,8 +23,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run Autonomous Bot
-        run: python -m bot.main
+      - name: Run Autonomous Bot (retry once)
+        run: |
+          python -m bot.main || (echo "First attempt failed, retrying once..." && sleep 10 && python -m bot.main)
 
       - name: Run Complexity & Performance Checks
         run: python -m bot.complexity && python -m bot.perfguard

@@ -21,14 +21,24 @@ class ProtocolError(RuntimeError):
     pass
 
 
+def _normalize_rel_path(path: str) -> str:
+    normalized = path.replace("\\", "/").strip()
+    while normalized.startswith("/"):
+        normalized = normalized[1:]
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized
+
+
 def _is_safe_rel_path(path: str) -> bool:
     if not path or path.strip() != path:
         return False
-    if path.startswith("/") or path.startswith("\\"):
+    normalized = _normalize_rel_path(path)
+    if not normalized:
         return False
-    if ":" in path:
+    if ":" in normalized:
         return False
-    parts = path.replace("\\", "/").split("/")
+    parts = normalized.split("/")
     if any(p in ("..", "") for p in parts):
         return False
     if parts[0] == ".git":
@@ -60,13 +70,13 @@ def parse_changeset(obj: dict[str, Any]) -> ChangeSet:
             raise ProtocolError(f"Unsafe write path: {path!r}")
         if not isinstance(content, str):
             raise ProtocolError(f"Invalid content for {path!r}")
-        writes.append(FileWrite(path=path, content=content))
+        writes.append(FileWrite(path=_normalize_rel_path(path), content=content))
 
     deletes: list[str] = []
     for p in deletes_raw:
         if not isinstance(p, str) or not _is_safe_rel_path(p):
             raise ProtocolError(f"Unsafe delete path: {p!r}")
-        deletes.append(p)
+        deletes.append(_normalize_rel_path(p))
 
     if not writes and not deletes:
         raise ProtocolError("Empty changeset (no writes/deletes)")

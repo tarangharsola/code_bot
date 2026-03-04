@@ -27,8 +27,8 @@ def main():
     commits_today = len(commit_times)
     now = int(time.time())
 
-    # Enforce minimum interval between commits
-    if commit_times:
+    # Enforce minimum interval only after daily minimum is reached.
+    if commit_times and commits_today >= commits_per_day:
         last_commit_time = max(commit_times)
         next_allowed_time = last_commit_time + min_commit_interval_hours * 3600
         if now < next_allowed_time:
