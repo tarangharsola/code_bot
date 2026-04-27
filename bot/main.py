@@ -10,7 +10,7 @@ from bot.config import load_config
 def main():
     config = load_config()
     commits_per_day = int(config.get("min_commits_per_day", 3))
-    total_days = int(config.get("project_duration", 60))
+    total_days = config.get("project_duration_days")
     min_commit_interval_hours = int(config.get("min_commit_interval_hours", 3))
 
     # Ensure we have the target repo clone available for git-based state.
@@ -49,7 +49,7 @@ def main():
     else:
         current_day = (bot_commit_count // commits_per_day) + 1
 
-    if current_day > total_days:
+    if total_days is not None and current_day > total_days:
         print("Website build complete.")
         sys.exit(0)
 

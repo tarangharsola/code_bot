@@ -46,7 +46,9 @@ project_prompt: |
 
   OUTPUT:
   Provide complete, production-ready code that can be deployed and tested immediately. Choose the most appropriate technologies for achieving real-time collaboration with minimal latency and maximum reliability.
-project_duration: 60
+# Valid values: positive integer days, or one of
+# lifetime | infinite | forever | unlimited | none
+project_duration: lifetime
 min_commits_per_day: 6
 min_commit_interval_hours: 3
 constraints:

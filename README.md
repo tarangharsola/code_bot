@@ -46,7 +46,7 @@ The end result is that **the whole web application lives in the target repo** â€
 - **Document Sharing:** Unique shareable URLs for each coding session.
 - **Responsive UI:** Clean, professional interface with dark mode and mobile/desktop support.
 - **Robust Backend:** Uses WebSocket for real-time sync, CRDT/OT for conflict resolution, and production-grade error handling.
-- **Autonomous Development:** Bot plans, implements, and commits 6 incremental improvements every day for 60 days.
+- **Autonomous Development:** Bot plans, implements, and commits incremental improvements every day for a configurable duration (including lifetime mode).
 - **Cloud Execution:** Runs daily in GitHub Actions at 12:00 PM IST (06:30 UTC) and can be manually triggered.
 - **Complexity & Performance Checks:** Ensures efficient, scalable code with every commit.
 
@@ -56,6 +56,10 @@ The end result is that **the whole web application lives in the target repo** â€
   1. Clones the target repo
   2. Plans 6 incremental improvements
   3. Applies changes, commits, and pushes
+
+Set `project_duration` in `bot/user_config.yaml` to:
+- A positive integer for fixed number of days, or
+- `lifetime` / `infinite` / `forever` / `unlimited` / `none` for no end date.
 
 ## Groq (AI) setup
 

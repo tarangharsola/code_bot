@@ -10,6 +10,27 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+def _parse_project_duration(raw_value):
+    """Return an int day count or None for unlimited runtime."""
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, int):
+        return None if raw_value <= 0 else raw_value
+    if isinstance(raw_value, str):
+        normalized = raw_value.strip().lower()
+        if normalized in {"lifetime", "infinite", "forever", "unlimited", "none"}:
+            return None
+        try:
+            parsed = int(normalized)
+        except ValueError as exc:
+            raise ValueError(
+                "project_duration must be an integer day count or one of "
+                "'lifetime', 'infinite', 'forever', 'unlimited', 'none'."
+            ) from exc
+        return None if parsed <= 0 else parsed
+    raise ValueError("project_duration must be an integer or a string value.")
+
+
 def load_config() -> dict:
     config_path = _repo_root() / "bot" / "user_config.yaml"
     if not config_path.exists():
@@ -25,4 +46,6 @@ def load_config() -> dict:
     for key in required:
         if key not in config:
             raise ValueError(f"Missing required config: {key}")
+
+    config["project_duration_days"] = _parse_project_duration(config.get("project_duration"))
     return config
