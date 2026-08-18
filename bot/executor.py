@@ -126,7 +126,7 @@ def ai_step(step: dict) -> None:
     import re
     config = load_config()
     api_key = get_api_key_from_env(config.get("groq_api_key_env", "GROQ_API_KEY"))
-    model = (config.get("groq_model") or "llama-3.1-8b-instant").strip()
+    model = (config.get("groq_model") or "openai/gpt-oss-120b").strip()
 
     project_prompt = (config.get("project_prompt", "") or "").strip()
     # Keep prompts bounded to reduce token usage/quota burn.
