@@ -6,7 +6,7 @@ github_token_secret: "TARGET_REPO_PAT"
 
 # Optional AI settings (recommended)
 # Add GROQ_API_KEY as a GitHub Actions secret in this bot repo.
-groq_model: "llama-3.1-8b-instant"
+groq_model: "openai/gpt-oss-120b"
 groq_api_key_env: "GROQ_API_KEY"
 project_prompt: |
   Build a collaborative code editor web application with real-time multi-user editing capabilities.
